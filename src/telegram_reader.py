@@ -1,46 +1,51 @@
-# telegram_reader.py
-
-from telethon import TelegramClient
-from telethon.tl.functions.messages import GetHistoryRequest
-from datetime import datetime, timedelta
+import sys
 import os
-from dotenv import load_dotenv
+from datetime import datetime, timedelta
+from telethon import TelegramClient
+from config.config_file import config_obj
 
-# Load environment variables from .env file
-load_dotenv()
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/..')
 
 class TelegramReader:
     def __init__(self):
-        # Initialize the client using credentials from environment variables
-        self.api_id = os.getenv('API_ID')
-        self.api_hash = os.getenv('API_HASH')
-        self.phone = os.getenv('PHONE')
+        self.api_id = config_obj.telegram_api_id
+        self.api_hash = config_obj.telegram_api_hash
+        self.chat_id = config_obj.telegram_chat_id
         self.client = TelegramClient('session_name', self.api_id, self.api_hash)
-    
-    async def connect(self):
-        # Connect to the Telegram API
-        await self.client.start(self.phone)
-    
-    async def download_messages_from_day(self, chat_id, target_date):
-        # Convert the date to a datetime object
-        target_date = datetime.strptime(target_date, "%Y-%m-%d")
+
+    async def get_messages_from_day(self, target_date=None, save_to_file=True):
+        if target_date is None:
+            target_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        
+        target_date = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=datetime.now().astimezone().tzinfo)
         next_day = target_date + timedelta(days=1)
         
-        # Fetch messages from the chat within the specific day range
-        messages = []
-        async for message in self.client.iter_messages(chat_id, offset_date=next_day, reverse=True):
-            if message.date < target_date:
-                break
-            messages.append(message)
-        
-        # Save messages to a file
-        file_name = f'messages_{target_date.strftime("%Y_%m_%d")}.txt'
-        with open(file_name, 'w', encoding='utf-8') as f:
+        async with self.client:
+            messages = []
+            async for message in self.client.iter_messages(self.chat_id, offset_date=next_day, reverse=True):
+                if message.date == target_date:
+                    break
+                messages.append(message)
+
+            if save_to_file:
+                self._save_messages_to_file(messages, target_date)
+
+            messages_list = [f"{msg.date}: {msg.sender_id}: {msg.text}" for msg in messages]
+
+        return messages_list
+
+    def _save_messages_to_file(self, messages, target_date):
+        with open(f'messages_{target_date.strftime("%Y_%m_%d")}.txt', 'w', encoding='utf-8') as f:
             for msg in messages:
                 f.write(f"{msg.date}: {msg.sender_id}: {msg.text}\n")
-        
-        print(f"Messages saved to {file_name}")
 
-    async def close(self):
-        # Disconnect the client
-        await self.client.disconnect()
+    async def send_message(self, message: str):
+        await self.client.send_message(self.chat_id, message)
+
+    async def run(self):
+        await self.get_messages_from_day()
+
+if __name__ == "__main__":
+    reader = TelegramReader()
+    with reader.client:
+        reader.client.loop.run_until_complete(reader.run())
