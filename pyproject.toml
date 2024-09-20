@@ -4,14 +4,19 @@ version = "0.1.0"
 description = "app that analyses telegram messages with ai"
 authors = ["annamarchenkova <marchenkova.anna@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
 Telethon = "^1.36.0"
 openai = "^1.46.1"
+structlog = "^24.4.0"
+python-dotenv = "^1.0.1"
+langchain = "^0.3.0"
+langchain-openai = "^0.2.0"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-package-mode = false
+
