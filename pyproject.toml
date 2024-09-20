@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "telegram-analyser"
+version = "0.1.0"
+description = "app that analyses telegram messages with ai"
+authors = ["annamarchenkova <marchenkova.anna@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+Telethon = "^1.36.0"
+openai = "^1.46.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+package-mode = false
